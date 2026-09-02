@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071019">
+  <title>Scanner Portería</title>
+  <style>
+    :root{
+      --bg:#071019;
+      --panel:#0d1822;
+      --panel2:#111f2b;
+      --border:#293947;
+      --text:#f5f7fa;
+      --muted:#93a1ae;
+      --green:#45d164;
+      --green2:#1e7f39;
+      --red:#ff6259;
+      --blue:#8da2ff;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
+    body{
+      min-height:100dvh;
+      background:
+        radial-gradient(circle at 50% -20%,rgba(64,102,255,.12),transparent 35%),
+        linear-gradient(180deg,#071019,#08131d);
+    }
+    .app{max-width:560px;margin:0 auto;min-height:100dvh;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom)}
+    header{
+      height:58px;display:flex;align-items:center;justify-content:space-between;
+      border-bottom:1px solid #1d2a35;
+    }
+    header strong{font-size:16px}
+    .statusDot{width:9px;height:9px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px}
+    main{padding:18px 0 26px}
+    .intro{text-align:center;margin-bottom:15px}
+    .intro h1{font-size:22px;margin:0 0 7px}
+    .intro p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+    .card{
+      background:linear-gradient(180deg,var(--panel2),var(--panel));
+      border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:12px;
+    }
+    .permission{text-align:center}
+    .icon{
+      width:70px;height:70px;border-radius:17px;margin:0 auto 14px;
+      display:flex;align-items:center;justify-content:center;
+      background:#10301c;border:1px solid #27643a;color:var(--green);font-size:36px
+    }
+    button{
+      width:100%;min-height:50px;border-radius:11px;border:1px solid #2e4050;
+      background:#16232e;color:var(--text);font-weight:900;font-size:14px;cursor:pointer;
+    }
+    button.primary{
+      background:linear-gradient(180deg,#2a9747,#1b7434);
+      border-color:#3aaa59;color:#fff;
+    }
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .muted{color:var(--muted)}
+    .small{font-size:11px}
+    #cameraWrap{position:relative;overflow:hidden;border-radius:16px;border:1px solid var(--border);background:#020609;aspect-ratio:3/4;max-height:72dvh}
+    video{width:100%;height:100%;object-fit:cover;display:block}
+    canvas{display:none}
+    .shade{position:absolute;inset:0;pointer-events:none;background:rgba(0,0,0,.10)}
+    .frame{position:absolute;left:12%;right:12%;top:23%;bottom:23%;pointer-events:none}
+    .frame i{position:absolute;width:48px;height:48px}
+    .tl{left:0;top:0;border-left:4px solid var(--green);border-top:4px solid var(--green);border-radius:9px 0 0}
+    .tr{right:0;top:0;border-right:4px solid var(--green);border-top:4px solid var(--green);border-radius:0 9px 0 0}
+    .bl{left:0;bottom:0;border-left:4px solid var(--green);border-bottom:4px solid var(--green);border-radius:0 0 0 9px}
+    .br{right:0;bottom:0;border-right:4px solid var(--green);border-bottom:4px solid var(--green);border-radius:0 0 9px}
+    .cameraStatus{
+      position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
+      padding:7px 11px;border-radius:999px;background:rgba(4,9,14,.78);
+      border:1px solid #344654;font-size:11px;white-space:nowrap;
+    }
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    .message{padding:12px;border-radius:10px;margin-top:10px;font-size:12px;line-height:1.4}
+    .error{background:#351619;border:1px solid #713039;color:#ffb2ad}
+    .ok{background:#0e2f1a;border:1px solid #28683c;color:#9aedac}
+    .result{
+      word-break:break-all;background:#09131c;border:1px solid #293947;padding:11px;border-radius:9px;
+      font-family:monospace;font-size:11px;margin-top:10px;text-align:left
+    }
+    .hidden{display:none!important}
+    .torchOn{border-color:#4ad46a!important;color:#9af0ac!important}
+    footer{text-align:center;color:#62717f;font-size:10px;padding:14px 0}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <strong>Portería · Lector QR</strong>
+    <span class="small muted"><span class="statusDot"></span>Scanner</span>
+  </header>
+
+  <main>
+    <div class="intro">
+      <h1>Escanear código QR</h1>
+      <p>Usa la cámara trasera. Al detectar una reserva, volverás automáticamente a la aplicación.</p>
+    </div>
+
+    <section id="permissionCard" class="card permission">
+      <div class="icon">⌗</div>
+      <h2 style="font-size:18px;margin:0 0 8px">Permitir cámara</h2>
+      <p class="muted" style="font-size:12px;line-height:1.45;margin:0 0 15px">
+        La primera vez, el navegador solicitará autorización para usar la cámara.
+      </p>
+      <button id="startBtn" class="primary">PERMITIR CÁMARA Y ESCANEAR</button>
+      <div id="permissionInfo" class="small muted" style="margin-top:10px"></div>
+    </section>
+
+    <section id="scannerCard" class="hidden">
+      <div id="cameraWrap">
+        <video id="video" playsinline muted autoplay></video>
+        <canvas id="canvas"></canvas>
+        <div class="shade"></div>
+        <div class="frame"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+        <div id="cameraStatus" class="cameraStatus">Iniciando cámara…</div>
+      </div>
+      <div class="actions">
+        <button id="torchBtn" class="hidden">💡 LINTERNA</button>
+        <button id="retryBtn">REINICIAR</button>
+      </div>
+    </section>
+
+    <div id="message"></div>
+
+    <section id="scanResultCard" class="card hidden">
+      <strong>QR leído</strong>
+      <div id="scanResult" class="result"></div>
+      <p id="noReturnText" class="small muted hidden">
+        El scanner funciona. Todavía no se configuró una URL de retorno hacia Apps Script.
+      </p>
+      <button id="scanAgainBtn" style="margin-top:10px">ESCANEAR OTRO</button>
+    </section>
+  </main>
+
+  <footer>Scanner externo para Portería</footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // OPCIONAL:
+  // Cuando integremos el scanner con Apps Script puedes dejar esto vacío
+  // y enviar ?return=https%3A%2F%2Fscript.google.com%2F...
+  const DEFAULT_RETURN_URL = "";
+
+  let stream = null;
+  let scanning = false;
+  let scanBusy = false;
+  let raf = 0;
+  let detector = null;
+  let jsQrPromise = null;
+
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const startBtn = document.getElementById("startBtn");
+  const retryBtn = document.getElementById("retryBtn");
+  const torchBtn = document.getElementById("torchBtn");
+  const permissionCard = document.getElementById("permissionCard");
+  const scannerCard = document.getElementById("scannerCard");
+  const cameraStatus = document.getElementById("cameraStatus");
+  const permissionInfo = document.getElementById("permissionInfo");
+  const message = document.getElementById("message");
+  const resultCard = document.getElementById("scanResultCard");
+  const scanResult = document.getElementById("scanResult");
+  const noReturnText = document.getElementById("noReturnText");
+  const scanAgainBtn = document.getElementById("scanAgainBtn");
+
+  function showMessage(text, type="error"){
+    message.innerHTML = `<div class="message ${type}">${escapeHtml(text)}</div>`;
+  }
+  function clearMessage(){ message.innerHTML = ""; }
+  function escapeHtml(s){
+    return String(s ?? "").replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  function stopCamera(){
+    scanning = false;
+    scanBusy = false;
+    if(raf){ cancelAnimationFrame(raf); raf = 0; }
+    if(stream){
+      stream.getTracks().forEach(t => { try{ t.stop(); }catch(e){} });
+      stream = null;
+    }
+    try{ video.pause(); }catch(e){}
+    video.srcObject = null;
+    torchBtn.classList.add("hidden");
+  }
+
+  function getReturnUrl(){
+    const p = new URLSearchParams(location.search).get("return") || DEFAULT_RETURN_URL;
+    if(!p) return "";
+    try{
+      const u = new URL(p);
+      if(u.protocol !== "https:") return "";
+      // Limitamos la redirección a dominios habituales de Apps Script.
+      const h = u.hostname.toLowerCase();
+      if(!(h === "script.google.com" || h.endsWith(".googleusercontent.com"))) return "";
+      return u.toString();
+    }catch(e){
+      return "";
+    }
+  }
+
+  function extractReservationQr(raw){
+    const value = String(raw || "").trim();
+    if(!value) return "";
+
+    // Si el QR contiene una URL completa generada por la Web App.
+    try{
+      const u = new URL(value);
+      const q = u.searchParams.get("qr");
+      if(q) return q.trim();
+    }catch(e){}
+
+    // Si contiene directamente el token.
+    if(/^RES-R\d{6}-[A-Z0-9]+$/i.test(value)) return value;
+
+    // Respaldo para cadenas que contienen ?qr=...
+    const m = value.match(/(?:^|[?&])qr=([^&]+)/i);
+    if(m){
+      try{ return decodeURIComponent(m[1]); }catch(e){ return m[1]; }
+    }
+
+    return "";
+  }
+
+  function redirectToApp(qr){
+    const back = getReturnUrl();
+    if(!back){
+      scanResult.textContent = qr;
+      resultCard.classList.remove("hidden");
+      noReturnText.classList.remove("hidden");
+      scannerCard.classList.add("hidden");
+      return;
+    }
+    const u = new URL(back);
+    u.searchParams.set("qr", qr);
+    location.replace(u.toString());
+  }
+
+  async function loadJsQr(){
+    if(window.jsQR) return;
+    if(jsQrPromise) return jsQrPromise;
+    jsQrPromise = new Promise((resolve,reject)=>{
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js";
+      s.async = true;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("No se pudo cargar el lector QR de respaldo."));
+      document.head.appendChild(s);
+    });
+    return jsQrPromise;
+  }
+
+  async function startCamera(){
+    clearMessage();
+    resultCard.classList.add("hidden");
+    noReturnText.classList.add("hidden");
+    startBtn.disabled = true;
+    startBtn.textContent = "SOLICITANDO PERMISO…";
+
+    if(!window.isSecureContext){
+      showMessage("La cámara requiere HTTPS. GitHub Pages usa HTTPS, por lo que esto no debería ocurrir una vez publicado.");
+      startBtn.disabled = false;
+      startBtn.textContent = "VOLVER A INTENTAR";
+      return;
+    }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      showMessage("Este navegador no permite usar la cámara mediante getUserMedia.");
+      startBtn.disabled = false;
+      startBtn.textContent = "VOLVER A INTENTAR";
+      return;
+    }
+
+    try{
+      stopCamera();
+      stream = await navigator.mediaDevices.getUserMedia({
+        video:{
+          facingMode:{ideal:"environment"},
+          width:{ideal:1280},
+          height:{ideal:720}
+        },
+        audio:false
+      });
+
+      video.srcObject = stream;
+      await video.play();
+
+      permissionCard.classList.add("hidden");
+      scannerCard.classList.remove("hidden");
+      cameraStatus.textContent = "Buscando QR…";
+
+      configureTorch();
+      scanning = true;
+      scanBusy = false;
+      loop();
+    }catch(e){
+      let text = "No fue posible abrir la cámara.";
+      if(e && (e.name === "NotAllowedError" || e.name === "PermissionDeniedError")){
+        text = "El permiso de cámara fue rechazado o está bloqueado para este sitio. Revisa los permisos del navegador y vuelve a intentarlo.";
+      }else if(e && e.name === "NotFoundError"){
+        text = "No se encontró una cámara disponible.";
+      }else if(e && e.name === "NotReadableError"){
+        text = "La cámara está ocupada por otra aplicación.";
+      }
+      showMessage(text);
+      permissionInfo.textContent = e && e.name ? `Detalle: ${e.name}` : "";
+      startBtn.disabled = false;
+      startBtn.textContent = "VOLVER A SOLICITAR CÁMARA";
+    }
+  }
+
+  function configureTorch(){
+    const track = stream && stream.getVideoTracks()[0];
+    const caps = track && track.getCapabilities ? track.getCapabilities() : {};
+    if(caps && caps.torch){
+      torchBtn.classList.remove("hidden");
+      let on = false;
+      torchBtn.onclick = async () => {
+        try{
+          on = !on;
+          await track.applyConstraints({advanced:[{torch:on}]});
+          torchBtn.classList.toggle("torchOn", on);
+          torchBtn.textContent = on ? "💡 APAGAR" : "💡 LINTERNA";
+        }catch(e){}
+      };
+    }
+  }
+
+  async function detectNative(){
+    if(!("BarcodeDetector" in window)) return "";
+    try{
+      if(!detector) detector = new BarcodeDetector({formats:["qr_code"]});
+      const found = await detector.detect(video);
+      return found && found[0] ? found[0].rawValue || "" : "";
+    }catch(e){
+      return "";
+    }
+  }
+
+  async function detectJsQr(){
+    await loadJsQr();
+    if(video.videoWidth < 2 || video.videoHeight < 2) return "";
+    const max = 720;
+    const scale = Math.min(1, max / video.videoWidth);
+    canvas.width = Math.max(2, Math.round(video.videoWidth * scale));
+    canvas.height = Math.max(2, Math.round(video.videoHeight * scale));
+    const ctx = canvas.getContext("2d", {willReadFrequently:true});
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+    const r = window.jsQR(img.data,img.width,img.height,{inversionAttempts:"attemptBoth"});
+    return r && r.data ? r.data : "";
+  }
+
+  async function loop(){
+    if(!scanning || scanBusy) return;
+    if(video.readyState < 2){
+      raf = requestAnimationFrame(loop);
+      return;
+    }
+
+    scanBusy = true;
+    try{
+      let raw = await detectNative();
+      if(!raw) raw = await detectJsQr();
+
+      if(raw){
+        const qr = extractReservationQr(raw);
+        if(qr){
+          scanning = false;
+          cameraStatus.textContent = "QR detectado";
+          if(navigator.vibrate) navigator.vibrate(100);
+          stopCamera();
+          redirectToApp(qr);
+          return;
+        }else{
+          cameraStatus.textContent = "QR no corresponde a una reserva";
+          setTimeout(()=>{ if(scanning) cameraStatus.textContent="Buscando QR…"; },900);
+        }
+      }
+    }catch(e){
+      // Continúa intentando; un frame fallido no debe detener el scanner.
+    }finally{
+      scanBusy = false;
+    }
+
+    if(scanning){
+      setTimeout(()=>{ raf=requestAnimationFrame(loop); },100);
+    }
+  }
+
+  startBtn.addEventListener("click", startCamera);
+  retryBtn.addEventListener("click", startCamera);
+  scanAgainBtn.addEventListener("click", ()=>{
+    resultCard.classList.add("hidden");
+    permissionCard.classList.remove("hidden");
+    startBtn.disabled = false;
+    startBtn.textContent = "PERMITIR CÁMARA Y ESCANEAR";
+  });
+
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.hidden) stopCamera();
+  });
+  window.addEventListener("pagehide", stopCamera);
+
+  // Sólo informamos el estado. La solicitud real se hace al tocar el botón.
+  if(navigator.permissions && navigator.permissions.query){
+    navigator.permissions.query({name:"camera"}).then(p=>{
+      if(p.state==="granted") permissionInfo.textContent="La cámara ya está autorizada para este sitio.";
+      else if(p.state==="denied") permissionInfo.textContent="La cámara está bloqueada para este sitio. Debes habilitarla en los permisos del navegador.";
+      else permissionInfo.textContent="El navegador solicitará permiso al tocar el botón.";
+    }).catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>
