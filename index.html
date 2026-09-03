@@ -232,6 +232,8 @@
 
   function redirectToApp(qr){
     const back = getReturnUrl();
+    const fastBack = new URLSearchParams(location.search).get("fastback") === "1";
+
     if(!back){
       scanResult.textContent = qr;
       resultCard.classList.remove("hidden");
@@ -239,6 +241,18 @@
       scannerCard.classList.add("hidden");
       return;
     }
+
+    // Ruta ultrarrápida: volvemos a la instancia YA ABIERTA de Apps Script,
+    // evitando recargar todo el HTML de la Web App.
+    if(fastBack && history.length > 1){
+      try{
+        window.name = "PORTERIA_QR:" + qr;
+        history.back();
+        return;
+      }catch(e){}
+    }
+
+    // Respaldo universal: recarga tradicional con ?qr=...
     const u = new URL(back);
     u.searchParams.set("qr", qr);
     location.replace(u.toString());
