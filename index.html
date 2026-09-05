@@ -136,7 +136,7 @@
     </section>
   </main>
 
-  <footer>Scanner externo para Portería</footer>
+  <footer>Scanner externo para Portería · v3.1</footer>
 </div>
 
 <script>
@@ -234,7 +234,6 @@
 
   function redirectToApp(qr){
     const back = getReturnUrl();
-    const fastBack = new URLSearchParams(location.search).get("fastback") === "1";
 
     if(!back){
       scanResult.textContent = qr;
@@ -244,19 +243,14 @@
       return;
     }
 
-    // Ruta ultrarrápida: volvemos a la instancia YA ABIERTA de Apps Script,
-    // evitando recargar todo el HTML de la Web App.
-    if(fastBack && history.length > 1){
-      try{
-        window.name = "PORTERIA_QR:" + qr;
-        history.back();
-        return;
-      }catch(e){}
-    }
-
-    // Respaldo universal: recarga tradicional con ?qr=...
+    // v3.1 / app v6.5:
+    // Para un QR leído usamos siempre una URL explícita ?qr=...
+    // Esto hace que el código recién leído sea la única fuente de verdad y
+    // evita que el navegador restaure una reserva anterior desde bfcache.
     const u = new URL(back);
     u.searchParams.set("qr", qr);
+    u.searchParams.set("scan", String(Date.now())); // evita reutilización accidental/caché
+    stopCamera();
     location.replace(u.toString());
   }
 
