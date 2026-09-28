@@ -138,7 +138,7 @@
     </section>
   </main>
 
-  <footer>Scanner externo para Portería · v3.2</footer>
+  <footer>Scanner externo para Portería · v3.3</footer>
 </div>
 
 <script>
@@ -212,6 +212,11 @@
     }
   }
 
+  function tokenReservaValido(value){
+    const token=String(value||"").trim();
+    return /^RES-R\d{6}-[A-Z0-9]{10}$/i.test(token) ? token : "";
+  }
+
   function extractReservationQr(raw){
     const value = String(raw || "").trim();
     if(!value) return "";
@@ -219,17 +224,19 @@
     // Si el QR contiene una URL completa generada por la Web App.
     try{
       const u = new URL(value);
-      const q = u.searchParams.get("qr");
-      if(q) return q.trim();
+      const q = tokenReservaValido(u.searchParams.get("qr"));
+      if(q) return q;
     }catch(e){}
 
     // Si contiene directamente el token.
-    if(/^RES-R\d{6}-[A-Z0-9]+$/i.test(value)) return value;
+    const directo=tokenReservaValido(value);
+    if(directo) return directo;
 
     // Respaldo para cadenas que contienen ?qr=...
     const m = value.match(/(?:^|[?&])qr=([^&]+)/i);
     if(m){
-      try{ return decodeURIComponent(m[1]); }catch(e){ return m[1]; }
+      try{return tokenReservaValido(decodeURIComponent(m[1]));}
+      catch(e){return tokenReservaValido(m[1]);}
     }
 
     return "";
